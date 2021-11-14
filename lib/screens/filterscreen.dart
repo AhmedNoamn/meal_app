@@ -1,107 +1,124 @@
 import 'package:flutter/material.dart';
-import 'package:meal_food/widgets/maindrawer.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/language_provider.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/maindrawer.dart';
+import '../providers/meal_provider..dart';
+
+// ignore: must_be_immutable
 class Filterscreen extends StatefulWidget {
   static const routename = '/filters';
-
-  final Function savefilter;
-  final Map<String, bool> currentfilter;
-
-  const Filterscreen(this.currentfilter, this.savefilter);
+  bool fromOnBoarding;
+  Filterscreen({this.fromOnBoarding = false});
 
   @override
   _FilterscreenState createState() => _FilterscreenState();
 }
 
 class _FilterscreenState extends State<Filterscreen> {
-  bool _isGlutenFree = false;
-  bool _isLactoseFree = false;
-  bool _isVegan = false;
-  bool _isVegetarian = false;
-
-  @override
-  initState() {
-    _isGlutenFree = widget.currentfilter['gluten'];
-    _isLactoseFree = widget.currentfilter['lactose'];
-    _isVegan = widget.currentfilter['vegan'];
-    _isVegetarian = widget.currentfilter['vegetarian'];
-    super.initState();
-  }
-
   Widget buildswitchlisttile(String title, String description,
-      bool currentvalue, Function updatevalue) {
+      bool currentvalue, Function(bool) updatevalue) {
     return SwitchListTile(
-        title: Text(title),
-        value: currentvalue,
-        subtitle: Text(description),
-        onChanged: updatevalue);
+      inactiveTrackColor: Colors.black,
+      title: Text(title),
+      value: currentvalue,
+      subtitle: Text(description),
+      onChanged: updatevalue,
+      activeColor: Theme.of(context).colorScheme.secondary,
+      inactiveThumbColor:
+          Provider.of<ThemeProvider>(context, listen: true).tm ==
+                  ThemeMode.light
+              ? null
+              : Colors.white54,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("My Filter"),
-        actions: [
-          IconButton(
-              icon: Icon(Icons.save),
-              onPressed: () {
-                final Map<String, bool> selectedfilter = {
-                  'gluten': _isGlutenFree,
-                  'lactose': _isLactoseFree,
-                  'vegan': _isVegan,
-                  'vegetarian': _isVegetarian,
-                };
-                widget.savefilter(selectedfilter);
-              })
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(15),
-            child: Text(
-              "Adjust Your Meal Selection",
-              style: Theme.of(context).textTheme.headline6,
+    final Map<String, bool> currentfilter =
+        Provider.of<MealProvider>(context, listen: true).filters;
+    var lan = Provider.of<LanguageProvider>(context, listen: true);
+    return Directionality(
+      textDirection: lan.isEn ? TextDirection.ltr : TextDirection.rtl,
+      child: Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: false,
+              title: widget.fromOnBoarding
+                  ? null
+                  : Text((lan.getTexts('filters_appBar_title')).toString()),
+              backgroundColor: widget.fromOnBoarding
+                  ? Theme.of(context).canvasColor
+                  : Theme.of(context).colorScheme.primary,
+              elevation: widget.fromOnBoarding ? 0 : 5,
             ),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
+            SliverList(
+              delegate: SliverChildListDelegate([
+                Container(
+                  padding: EdgeInsets.all(15),
+                  child: Text(
+                    (lan.getTexts('filters_screen_title')).toString(),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headline6,
+                  ),
+                ),
                 buildswitchlisttile(
-                    "Gluten Free",
-                    "Only Include Gluten-Free Meals",
-                    _isGlutenFree, (newvalue) {
+                    lan.getTexts('Gluten-free').toString(),
+                    lan.getTexts('Gluten-free-sub').toString(),
+                    currentfilter['gluten']!, (newvalue) {
                   setState(() {
-                    _isGlutenFree = newvalue;
-                  });
-                }),
-                buildswitchlisttile(
-                    "Lactose Free",
-                    "Only Iclude Lactose-Free Meals",
-                    _isLactoseFree, (newvalue) {
-                  setState(() {
-                    _isLactoseFree = newvalue;
-                  });
-                }),
-                buildswitchlisttile("Vegetarian",
-                    "Only Include Vegetarian Meals", _isVegetarian, (newvalue) {
-                  setState(() {
-                    _isVegetarian = newvalue;
+                    currentfilter['gluten'] = newvalue;
                   });
                 }),
                 buildswitchlisttile(
-                    "Vegan", "Only Include Vegan Meals", _isVegan, (newvalue) {
+                    lan.getTexts('Lactose-free').toString(),
+                    lan.getTexts('Lactose-free_sub').toString(),
+                    currentfilter['lactose']!, (newvalue) {
                   setState(() {
-                    _isVegan = newvalue;
+                    currentfilter['lactose'] = newvalue;
                   });
                 }),
-              ],
+                buildswitchlisttile(
+                    lan.getTexts('Vegetarian').toString(),
+                    lan.getTexts('Vegetarian-sub').toString(),
+                    currentfilter['vegetarian']!, (newvalue) {
+                  setState(() {
+                    currentfilter['vegetarian'] = newvalue;
+                  });
+                }),
+                buildswitchlisttile(
+                    lan.getTexts('Vegan').toString(),
+                    lan.getTexts('Vegan-sub').toString(),
+                    currentfilter['vegan']!, (newvalue) {
+                  setState(() {
+                    currentfilter['vegan'] = newvalue;
+                  });
+                }),
+                SizedBox(
+                  height: widget.fromOnBoarding ? 80 : 10,
+                ),
+                FloatingActionButton(
+                    elevation: 3,
+                    child: Icon(Icons.save),
+                    onPressed: () {
+                      Provider.of<MealProvider>(context, listen: false)
+                          .setfilter();
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        width: 150,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        content: Text("           Saved"),
+                      ));
+                    }),
+              ]),
             ),
-          ),
-        ],
+          ],
+        ),
+        drawer: widget.fromOnBoarding ? null : Maindrawer(),
       ),
-      drawer: Maindrawer(),
     );
   }
 }
