@@ -1,100 +1,98 @@
 import 'package:flutter/material.dart';
-import 'package:meal_food/dummy_data.dart';
-import 'package:meal_food/models/meal.dart';
-import 'package:meal_food/screens/filterscreen.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import './providers/language_provider.dart';
+import './providers/meal_provider..dart';
+import './providers/theme_provider.dart';
+import './screens/filterscreen.dart';
+import './screens/on_boarding_screen.dart';
 import './screens/tabs_screen.dart';
-import './screens/category_meals_screem.dart';
+import './screens/category_meals_screen.dart';
 import './screens/meal_detail_screen.dart';
+import './screens/theme_screen.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  Widget homeScreen =
+      prefs.getBool('watched') ?? false ? TabsScreen() : OnBoardingScreen();
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider<MealProvider>(
+        create: (ctx) => MealProvider(),
+      ),
+      ChangeNotifierProvider(
+        create: (ctx) => ThemeProvider(),
+      ),
+      ChangeNotifierProvider(
+        create: (ctx) => LanguageProvider(),
+      )
+    ],
+    child: MyApp(homeScreen),
+  ));
 }
 
-class _MyAppState extends State<MyApp> {
-  Map<String, bool> _filters = {
-    'gluten': false,
-    'lactose': false,
-    'vegan': false,
-    'vegetarian': false,
-  };
-
-  List<Meal> _availablemeal = DUMMY_MEALS;
-  List<Meal> _favoritesmeal = [];
-
-  void _setfilter(Map<String, bool> _filterdata) {
-    setState(() {
-      _filters = _filterdata;
-      _availablemeal = DUMMY_MEALS.where((meal) {
-        if (_filters['gluten'] && !meal.isGlutenFree) {
-          return false;
-        }
-
-        if (_filters['lactose'] && !meal.isLactoseFree) {
-          return false;
-        }
-        if (_filters['vegan'] && !meal.isVegan) {
-          return false;
-        }
-        if (_filters['vegetarian'] && !meal.isVegetarian) {
-          return false;
-        }
-        return true;
-      }).toList();
-    });
-  }
-
-  void _togglefavouries(String mealid) {
-    final existingindex = _favoritesmeal.indexWhere((meal) => meal.id == mealid);
-    if (existingindex >= 0) {
-      setState(() {
-        _favoritesmeal.removeAt(existingindex);
-      });
-    } else {
-      setState(() {
-        _favoritesmeal.add(DUMMY_MEALS.firstWhere((meal) => meal.id == mealid));
-      });
-    }
-  }
-
-  bool _ismealfavorites(String id) {
-    return _favoritesmeal.any((meal) => meal.id == id);
-  }
-
+class MyApp extends StatelessWidget {
+  final Widget mainScreen;
+  MyApp(this.mainScreen);
   @override
   Widget build(BuildContext context) {
+    var primaryColor = Provider.of<ThemeProvider>(context).primaryColor;
+    var accentColor = Provider.of<ThemeProvider>(context).accentColor;
+    var tm = Provider.of<ThemeProvider>(context).tm;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: ' Flutter ',
+
+      themeMode: tm,
       theme: ThemeData(
-        //primarySwatch: Colors.pink,
-        primaryColor: Colors.red,
-        accentColor: Colors.amber[300],
-        canvasColor: Color.fromRGBO(252, 240, 231, 1),
+        cardColor: Color.fromRGBO(232, 226, 225, 1),
+        splashColor: Colors.black54,
+        shadowColor: Colors.white54,
+        canvasColor: Color.fromRGBO(232, 226, 225, 1),
         textTheme: ThemeData.light().textTheme.copyWith(
               bodyText1: TextStyle(
-                color: Color.fromRGBO(25, 54, 54, 1),
-              ),
-              bodyText2: TextStyle(
-                color: Color.fromRGBO(25, 54, 54, 1),
+                color: Colors.black,
               ),
               headline6: TextStyle(
-                  fontFamily: 'RobooCondensed',
+                  color: Colors.black,
+                  fontFamily: 'RobotoCondensed',
                   fontSize: 20,
                   fontWeight: FontWeight.bold),
             ),
+        colorScheme: ColorScheme.fromSwatch(primarySwatch: primaryColor)
+            .copyWith(secondary: accentColor),
+      ),
+      darkTheme: ThemeData(
+        cardColor: Color.fromRGBO(14, 22, 33, 1),
+        splashColor: Colors.white70,
+        shadowColor: Colors.black54,
+        unselectedWidgetColor: Colors.white60,
+        canvasColor: Color.fromRGBO(14, 22, 33, 1),
+        textTheme: ThemeData.dark().textTheme.copyWith(
+              bodyText1: TextStyle(
+                color: Colors.white54,
+              ),
+              headline6: TextStyle(
+                  color: Colors.white54,
+                  fontFamily: 'RobotoCondensed',
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold),
+            ),
+        colorScheme: ColorScheme.fromSwatch(primarySwatch: primaryColor)
+            .copyWith(secondary: accentColor),
       ),
       // home: MyHomePage(),
 
       routes: {
-        '/': (context) => TabsScreen(_favoritesmeal),
-        CategoryMealsScreen.routename: (context) =>
-            CategoryMealsScreen(_availablemeal),
-        MealDetialscreen.routename: (context) =>
-            MealDetialscreen(_togglefavouries, _ismealfavorites),
-        Filterscreen.routename: (context) => Filterscreen(_filters, _setfilter),
+        '/': (context) => mainScreen,
+        TabsScreen.routename: (context) => TabsScreen(),
+        CategoryMealsScreen.routename: (context) => CategoryMealsScreen(),
+        MealDetialscreen.routename: (context) => MealDetialscreen(),
+        Filterscreen.routename: (context) => Filterscreen(),
+        ThemeScreen.routename: (context) => ThemeScreen(),
       },
     );
   }
@@ -110,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Mama Food"),
+        title: Text("YU MMY"),
       ),
       body: null,
     );
